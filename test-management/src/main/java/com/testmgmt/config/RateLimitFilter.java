@@ -7,7 +7,6 @@ import io.github.bucket4j.Refill;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -20,15 +19,14 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class RateLimitFilter implements Filter {
 
-    @Value("${app.rate-limit.requests-per-minute:100}")
-    private int requestsPerMinute;
-
+    private final AppProperties appProperties;
     private final ObjectMapper objectMapper;
 
     // Per-IP bucket map — use Redis-backed Bucket4j in production
     private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
 
     private Bucket getBucket(String ip) {
+        int requestsPerMinute = appProperties.getRateLimit().getRequestsPerMinute();
         return buckets.computeIfAbsent(ip, k -> {
             Bandwidth limit = Bandwidth.classic(
                 requestsPerMinute,
